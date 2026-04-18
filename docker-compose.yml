@@ -1,0 +1,137 @@
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on: [zookeeper]
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  mongo1:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo1-data:/data/db
+
+  mongo2:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo2-data:/data/db
+
+  mongo3:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo3-data:/data/db
+
+  mongo-init:
+    image: mongo:7
+    depends_on: [mongo1, mongo2, mongo3]
+    restart: "no"
+    volumes:
+      - ./infra/mongo/init-replica.js:/scripts/init-replica.js:ro
+    entrypoint: ["bash", "-c", "sleep 5 && mongosh --host mongo1:27017 /scripts/init-replica.js"]
+
+  elasticsearch:
+    image: elasticsearch:8.13.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+  # ── Services ────────────────────────────────────────────────────
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8080:8000"
+    depends_on: [auth-lb, feed-service, llm-service, redis]
+    env_file: .env
+
+  auth-service-1:
+    build: ./services/auth-service
+    depends_on: [postgres, redis]
+    env_file: .env
+
+  auth-service-2:
+    build: ./services/auth-service
+    depends_on: [postgres, redis]
+    env_file: .env
+
+  auth-lb:
+    image: nginx:1.27-alpine
+    depends_on: [auth-service-1, auth-service-2]
+    ports:
+      - "8081:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  ingestion-service:
+    build: ./services/ingestion-service
+    depends_on: [kafka]
+    env_file: .env
+
+  processing-service:
+    build: ./services/processing-service
+    depends_on: [kafka, mongo1, mongo2, mongo3]
+    env_file: .env
+
+  feed-service:
+    build: ./services/feed-service
+    depends_on: [mongo1, mongo2, mongo3, redis, elasticsearch]
+    env_file: .env
+
+  llm-service:
+    build: ./services/llm-service
+    depends_on: [kafka]
+    env_file: .env
+
+volumes:
+  zookeeper-data:
+  kafka-data:
+  postgres-data:
+  redis-data:
+  mongo1-data:
+  mongo2-data:
+  mongo3-data:
+  es-data:
