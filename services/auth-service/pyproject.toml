@@ -8,7 +8,7 @@ dependencies = [
     "sqlalchemy[asyncio]",
     "asyncpg",
     "redis[hiredis]",
-    "passlib[bcrypt]",
+    "bcrypt>=4.1,<5",
     "python-jose[cryptography]",
     "pydantic[email]",
     "pydantic-settings",
