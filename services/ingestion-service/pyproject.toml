@@ -3,8 +3,16 @@ name = "ingestion-service"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi",
     "feedparser",
     "httpx",
     "aiokafka",
     "pydantic-settings",
+    "pydantic",
+    "uvicorn[standard]",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--capture=no"
+testpaths = ["tests"]
+pythonpath = ["."]

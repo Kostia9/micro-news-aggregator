@@ -21,6 +21,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     volumes:
       - kafka-data:/var/lib/kafka/data
+      - ./infra/kafka/topics.sh:/scripts/topics.sh:ro
 
   postgres:
     image: postgres:16-alpine
