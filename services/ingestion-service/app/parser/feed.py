@@ -66,8 +66,8 @@ def _content(entry: dict) -> str:
 
 
 def _published_at(entry: dict) -> str:
-    for field in ("published_parsed", "updated_parsed", "created_parsed"):
-        parsed = entry.get(field)
+    for attr in ("published_parsed", "updated_parsed", "created_parsed"):
+        parsed = entry.get(attr)
         if isinstance(parsed, struct_time):
             return datetime(*parsed[:6], tzinfo=timezone.utc).isoformat()
 

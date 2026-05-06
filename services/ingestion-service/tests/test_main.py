@@ -3,7 +3,6 @@ import asyncio
 import app.main as main
 from app.main import ingest_sources, start_producer_with_retry
 
-
 RSS_XML = b"""
 <rss version="2.0">
   <channel>

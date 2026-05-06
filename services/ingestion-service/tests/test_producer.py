@@ -2,7 +2,6 @@ import asyncio
 import json
 
 import pytest
-
 from app.config import settings
 from app.producer.kafka import ArticleProducer
 
