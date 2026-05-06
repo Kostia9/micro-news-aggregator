@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from datetime import datetime
+
+from pydantic import BaseModel
 
 
 class ArticleSummary(BaseModel):
@@ -17,10 +18,3 @@ class FeedResponse(BaseModel):
     total: int
     page: int
     page_size: int
-
-
-class SearchRequest(BaseModel):
-    query: str
-    topics: list[str] = []
-    page: int = 1
-    page_size: int = 20

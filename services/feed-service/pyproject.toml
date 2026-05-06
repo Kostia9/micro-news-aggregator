@@ -5,8 +5,12 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
+    "aiokafka",
     "motor",
-    "redis[hiredis]",
-    "elasticsearch[async]",
     "pydantic-settings",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--capture=no"
+testpaths = ["tests"]
+pythonpath = ["."]
