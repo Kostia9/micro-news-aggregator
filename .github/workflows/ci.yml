@@ -37,7 +37,9 @@ jobs:
           PY
 
       - name: Docker Compose config
-        run: docker compose config --quiet
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
 
       - name: Ingestion tests
         working-directory: services/ingestion-service
