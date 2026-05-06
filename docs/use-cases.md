@@ -14,30 +14,27 @@
 
 ## UC-4: Перегляд стрічки
 **Actor:** Читач
-**Flow:** GET `/feed` через API Gateway → feed-service → Mongo + Redis кеш.
+**Flow:** GET `/feed` через API Gateway з JWT → feed-service → Mongo read model.
 
-## UC-5: Пошук статей
-**Actor:** Читач
-**Flow:** GET `/search?q=...` → feed-service → Elasticsearch.
-
-## UC-6: Збір новин (фоновий)
+## UC-5: Збір новин (фоновий)
 **Actor:** System
 **Flow:** ingestion-service читає RSS → публікує в Kafka `articles.raw`.
 
-## UC-7: Обробка статей (фоновий)
+## UC-6: Обробка статей (фоновий)
 **Actor:** System
 **Flow:** processing-service консюмить `articles.raw` → дедуп/теги → Mongo + `articles.processed`.
 
-## UC-8: LLM-сумаризація (фоновий)
+## UC-7: Feed read model (фоновий)
 **Actor:** System
-**Flow:** llm-service консюмить `articles.processed` → Gemini → `articles.summarized`.
+**Flow:** feed-service консюмить `articles.processed` → upsert у Mongo DB `feed`.
 
 ## Backlog
-- [ ] Auth: register/login/logout + JWT в Redis
-- [ ] API Gateway: проксі + middleware перевірки JWT
-- [ ] Ingestion: RSS fetcher + Kafka producer
-- [ ] Processing: Kafka consumer + dedup/tagger + Mongo writer
-- [ ] LLM: Kafka consumer + Gemini client
-- [ ] Feed: REST API + Mongo reader + Elasticsearch search
-- [ ] HA: два інстанси auth-service + nginx + Redis-sessions
-- [ ] Mongo replica set init
+- [x] Auth: register/login/logout + JWT в Redis
+- [x] API Gateway: proxy + JWT/Redis allowlist check
+- [x] Ingestion: RSS fetcher + Kafka producer
+- [x] Processing: Kafka consumer + dedup/tagger + Mongo writer
+- [x] Feed: Kafka read model + REST feed API
+- [x] HA: два інстанси auth-service + nginx + Redis tokens
+- [x] Mongo replica set init
+- [ ] Future: LLM summarization
+- [ ] Future: Elasticsearch full-text search

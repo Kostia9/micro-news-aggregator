@@ -1,31 +1,42 @@
 # Micro News Aggregator
 
-Мікросервісна платформа для збору, обробки та персоналізованого показу новин.
+Мікросервісна платформа для збору RSS-новин, асинхронної обробки та показу стрічки через API Gateway.
 
 ## Документація
 - [Vision](docs/vision.md)
 - [Use cases / Backlog](docs/use-cases.md)
-- [Architecture diagram](docs/architecture.svg)
+- [Architecture diagram](docs/architecture.png)
+- [Demo checklist](docs/demo-checklist.md)
 
-## Сервіси
-| Сервіс | Призначення | Стек |
+## MVP Сервіси
+| Сервіс | Призначення | Persistence |
 |---|---|---|
-| `api-gateway` | Маршрутизація, auth middleware | FastAPI |
-| `auth-service` | Реєстрація / login / logout (JWT) | FastAPI + Postgres + Redis |
-| `ingestion-service` | Збір RSS → Kafka | FastAPI + aiokafka |
-| `processing-service` | Дедуп / теги → Mongo | FastAPI + Kafka + MongoDB |
-| `llm-service` | AI-сумаризація (Gemini) | FastAPI + Kafka |
-| `feed-service` | Стрічка + пошук | FastAPI + MongoDB + Elasticsearch + Redis |
+| `api-gateway` | Єдина REST-точка входу, JWT-перевірка, proxy | Redis allowlist lookup |
+| `auth-service` | Register / login / logout, JWT | Postgres + Redis |
+| `ingestion-service` | RSS polling -> Kafka `articles.raw` | Stateless |
+| `processing-service` | Dedup, tagging, Mongo write, Kafka `articles.processed` | MongoDB `processing` |
+| `feed-service` | Kafka read model + `GET /feed` | MongoDB `feed` |
 
 ## Інфраструктура
-- Kafka + Zookeeper
-- MongoDB replica set (`rs0`, 3 ноди)
-- Postgres, Redis, Elasticsearch
-- `auth-service` дубльований + nginx (`auth-lb`) для HA
+- Kafka + Zookeeper для асинхронної обробки.
+- MongoDB replica set (`rs0`, 3 ноди).
+- Postgres для користувачів auth-service.
+- Redis для JWT allowlist між дубльованими auth-service інстансами.
+- `auth-service` дубльований за nginx (`auth-lb`) для HA-сценарію.
+
+`llm-service` та Elasticsearch/search залишені як future scope і запускаються через Compose profile `future`.
 
 ## Запуск
 ```bash
 cp .env.example .env
 docker compose up -d
 docker compose exec kafka bash /scripts/topics.sh
+```
+
+## API Gateway
+```text
+POST /auth/register
+POST /auth/login
+POST /auth/logout
+GET  /feed?page=1&page_size=20&topic=technology
 ```
