@@ -71,6 +71,7 @@ services:
 
   elasticsearch:
     image: elasticsearch:8.13.0
+    profiles: ["future"]
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -86,7 +87,7 @@ services:
     build: ./services/api-gateway
     ports:
       - "8080:8000"
-    depends_on: [auth-lb, feed-service, llm-service, redis]
+    depends_on: [auth-lb, feed-service, redis]
     env_file: .env
 
   auth-service-1:
@@ -119,11 +120,12 @@ services:
 
   feed-service:
     build: ./services/feed-service
-    depends_on: [mongo1, mongo2, mongo3, redis, elasticsearch]
+    depends_on: [kafka, mongo1, mongo2, mongo3]
     env_file: .env
 
   llm-service:
     build: ./services/llm-service
+    profiles: ["future"]
     depends_on: [kafka]
     env_file: .env
 

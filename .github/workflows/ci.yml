@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Python syntax check
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          errors = []
+          for path in Path("services").rglob("*.py"):
+              if ".venv" in path.parts:
+                  continue
+              try:
+                  ast.parse(path.read_text(), filename=str(path))
+              except SyntaxError as exc:
+                  errors.append(f"{path}:{exc.lineno}: {exc.msg}")
+
+          if errors:
+              print("\n".join(errors))
+              raise SystemExit(1)
+          PY
+
+      - name: Docker Compose config
+        run: docker compose config --quiet
+
+      - name: Ingestion tests
+        working-directory: services/ingestion-service
+        run: uv run --with pytest pytest
+
+      - name: Processing tests
+        working-directory: services/processing-service
+        run: uv run --with pytest pytest
+
+      - name: Feed tests
+        working-directory: services/feed-service
+        run: uv run --with pytest pytest
+
+      - name: API Gateway tests
+        working-directory: services/api-gateway
+        run: uv run --with pytest pytest
