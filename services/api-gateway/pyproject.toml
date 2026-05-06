@@ -10,3 +10,8 @@ dependencies = [
     "redis[hiredis]",
     "python-jose[cryptography]",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--capture=no"
+testpaths = ["tests"]
+pythonpath = ["."]
