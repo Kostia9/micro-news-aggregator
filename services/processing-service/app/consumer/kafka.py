@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from aiokafka.structs import ConsumerRecord
@@ -33,11 +33,13 @@ class ArticleConsumer:
         logger.info("ArticleConsumer started")
 
     async def produce(self, article: dict) -> None:
-        assert self._producer is not None
+        if self._producer is None:
+            raise RuntimeError("Call start() before produce()")
         await self._producer.send_and_wait(settings.kafka_topic_processed, value=article)
 
     async def commit(self) -> None:
-        assert self._consumer is not None
+        if self._consumer is None:
+            raise RuntimeError("Call start() before commit()")
         await self._consumer.commit()
 
     async def stop(self) -> None:
@@ -48,5 +50,6 @@ class ArticleConsumer:
         logger.info("ArticleConsumer stopped")
 
     def __aiter__(self) -> AsyncIterator[ConsumerRecord]:
-        assert self._consumer is not None, "Call start() before iterating"
+        if self._consumer is None:
+            raise RuntimeError("Call start() before iterating")
         return self._consumer.__aiter__()
