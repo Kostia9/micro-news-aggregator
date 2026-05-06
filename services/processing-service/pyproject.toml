@@ -5,6 +5,10 @@ requires-python = ">=3.12"
 dependencies = [
     "aiokafka",
     "motor",
-    "httpx",
     "pydantic-settings",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--capture=no"
+testpaths = ["tests"]
+pythonpath = ["."]

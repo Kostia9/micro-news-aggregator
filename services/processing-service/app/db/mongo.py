@@ -3,7 +3,6 @@ import logging
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pymongo.errors import DuplicateKeyError
 
 logger = logging.getLogger(__name__)
 

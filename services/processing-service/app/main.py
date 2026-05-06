@@ -12,12 +12,12 @@ from app.db.mongo import (
     ensure_indexes,
     get_article_id_by_url,
     init_mongo,
+    is_published,
     mark_published,
     save_article,
     wait_for_mongo,
 )
-from app.processors.dedup import is_duplicate
-from app.processors.enricher import close_http_client, enrich, init_http_client
+from app.processors.enricher import enrich
 from app.processors.tagger import assign_topics
 
 logging.basicConfig(
@@ -54,6 +54,14 @@ def _parse_published_at(raw: str) -> datetime:
 _REQUIRED_FIELDS = ("url", "title", "source", "content")
 
 
+def _merge_topics(source_topics: list[str], assigned_topics: list[str]) -> list[str]:
+    topics: list[str] = []
+    for topic in [*source_topics, *assigned_topics]:
+        if topic and topic not in topics:
+            topics.append(topic)
+    return topics or ["general"]
+
+
 async def process_one(raw: dict, consumer: ArticleConsumer) -> None:
     missing = [f for f in _REQUIRED_FIELDS if not raw.get(f)]
     if missing:
@@ -62,7 +70,7 @@ async def process_one(raw: dict, consumer: ArticleConsumer) -> None:
 
     url = raw["url"]
 
-    if await is_duplicate(url):
+    if await is_published(url):
         logger.debug("Duplicate skipped: %s", url)
         return
 
@@ -76,7 +84,7 @@ async def process_one(raw: dict, consumer: ArticleConsumer) -> None:
     }
 
     article = await enrich(article)
-    article["topics"] = await assign_topics(article)
+    article["topics"] = _merge_topics(raw.get("topics", []), await assign_topics(article))
 
     doc = ArticleDoc(
         title=article["title"],
@@ -102,6 +110,7 @@ async def process_one(raw: dict, consumer: ArticleConsumer) -> None:
     processed_event = {
         "article_id": article_id,
         "title": doc.title,
+        "url": doc.url,
         "content": doc.content,
         "source": doc.source,
         "topics": doc.topics,
@@ -112,6 +121,24 @@ async def process_one(raw: dict, consumer: ArticleConsumer) -> None:
     await consumer.commit()
 
     logger.info("Processed %s (%s)", article_id, url)
+
+
+async def start_consumer_with_retry(consumer: ArticleConsumer) -> None:
+    for attempt in range(1, settings.kafka_startup_retries + 1):
+        try:
+            await consumer.start()
+            return
+        except Exception:
+            if attempt == settings.kafka_startup_retries:
+                logger.exception("Kafka consumer did not start after %s attempts", attempt)
+                raise
+            logger.warning(
+                "Kafka consumer not ready (attempt %s/%s), retrying in %.1fs",
+                attempt,
+                settings.kafka_startup_retries,
+                settings.kafka_startup_retry_delay_seconds,
+            )
+            await asyncio.sleep(settings.kafka_startup_retry_delay_seconds)
 
 
 async def main() -> None:
@@ -129,10 +156,9 @@ async def main() -> None:
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, _handle_signal)
 
-    init_http_client(settings.llm_service_url)
     consumer = ArticleConsumer()
     try:
-        await consumer.start()
+        await start_consumer_with_retry(consumer)
 
         logger.info(
             "processing-service started, consuming from %s", settings.kafka_topic_raw
@@ -147,7 +173,6 @@ async def main() -> None:
                 logger.exception("Unhandled error, skipping message: %s", exc)
     finally:
         await consumer.stop()
-        await close_http_client()
         logger.info("processing-service stopped")
 
 
