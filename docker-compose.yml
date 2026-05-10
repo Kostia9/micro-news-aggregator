@@ -1,3 +1,33 @@
+x-mongo-healthcheck: &mongo-healthcheck
+  test: ["CMD-SHELL", "mongosh --quiet --eval 'quit(db.adminCommand(\"ping\").ok ? 0 : 1)'"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 15s
+
+x-auth-service: &auth-service
+  build: ./services/auth-service
+  depends_on:
+    postgres:
+      condition: service_healthy
+      restart: true
+    redis:
+      condition: service_healthy
+      restart: true
+  env_file: .env
+
+x-mongo-cluster-deps: &mongo-cluster-deps
+  kafka:
+    condition: service_healthy
+  mongo-init:
+    condition: service_completed_successfully
+  mongo1:
+    condition: service_healthy
+  mongo2:
+    condition: service_healthy
+  mongo3:
+    condition: service_healthy
+
 services:
 
   # ── Infrastructure ──────────────────────────────────────────────
@@ -8,10 +38,19 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
-    depends_on: [zookeeper]
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
     environment:
@@ -19,9 +58,17 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    # Wait for stale Zookeeper broker sessions from previous persisted runs to expire.
+    entrypoint: ["/bin/bash", "-c", "sleep 25 && /etc/confluent/docker/run"]
     volumes:
       - kafka-data:/var/lib/kafka/data
       - ./infra/kafka/topics.sh:/scripts/topics.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   postgres:
     image: postgres:16-alpine
@@ -33,6 +80,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d auth"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -40,6 +93,11 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongo1:
     image: mongo:7
@@ -48,26 +106,35 @@ services:
       - "27017:27017"
     volumes:
       - mongo1-data:/data/db
+    healthcheck: *mongo-healthcheck
 
   mongo2:
     image: mongo:7
     command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo2-data:/data/db
+    healthcheck: *mongo-healthcheck
 
   mongo3:
     image: mongo:7
     command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo3-data:/data/db
+    healthcheck: *mongo-healthcheck
 
   mongo-init:
     image: mongo:7
-    depends_on: [mongo1, mongo2, mongo3]
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
     restart: "no"
     volumes:
       - ./infra/mongo/init-replica.js:/scripts/init-replica.js:ro
-    entrypoint: ["bash", "-c", "sleep 5 && mongosh --host mongo1:27017 /scripts/init-replica.js"]
+    entrypoint: ["mongosh", "--host", "mongo1:27017", "/scripts/init-replica.js"]
 
   elasticsearch:
     image: elasticsearch:8.13.0
@@ -85,20 +152,23 @@ services:
 
   api-gateway:
     build: ./services/api-gateway
+    restart: on-failure
     ports:
       - "8080:8000"
-    depends_on: [auth-lb, feed-service, redis]
+    depends_on:
+      auth-lb:
+        condition: service_started
+      feed-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
     env_file: .env
 
   auth-service-1:
-    build: ./services/auth-service
-    depends_on: [postgres, redis]
-    env_file: .env
+    <<: *auth-service
 
   auth-service-2:
-    build: ./services/auth-service
-    depends_on: [postgres, redis]
-    env_file: .env
+    <<: *auth-service
 
   auth-lb:
     image: nginx:1.27-alpine
@@ -110,23 +180,30 @@ services:
 
   ingestion-service:
     build: ./services/ingestion-service
-    depends_on: [kafka]
+    restart: on-failure
+    depends_on:
+      kafka:
+        condition: service_healthy
     env_file: .env
 
   processing-service:
     build: ./services/processing-service
-    depends_on: [kafka, mongo1, mongo2, mongo3]
+    restart: on-failure
+    depends_on: *mongo-cluster-deps
     env_file: .env
 
   feed-service:
     build: ./services/feed-service
-    depends_on: [kafka, mongo1, mongo2, mongo3]
+    restart: on-failure
+    depends_on: *mongo-cluster-deps
     env_file: .env
 
   llm-service:
     build: ./services/llm-service
     profiles: ["future"]
-    depends_on: [kafka]
+    depends_on:
+      kafka:
+        condition: service_healthy
     env_file: .env
 
 volumes:

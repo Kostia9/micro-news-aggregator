@@ -26,3 +26,4 @@ Thumbs.db
 # drafts
 drafts/
 .ruff_cache/
+.pytest_cache/

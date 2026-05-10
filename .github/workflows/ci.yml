@@ -41,6 +41,9 @@ jobs:
           cp .env.example .env
           docker compose config --quiet
 
+      - name: Docker Compose build
+        run: docker compose build
+
       - name: Ingestion tests
         working-directory: services/ingestion-service
         run: uv run --with pytest pytest
@@ -55,4 +58,8 @@ jobs:
 
       - name: API Gateway tests
         working-directory: services/api-gateway
+        run: uv run --with pytest pytest
+
+      - name: Auth service tests
+        working-directory: services/auth-service
         run: uv run --with pytest pytest

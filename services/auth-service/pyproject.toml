@@ -13,3 +13,8 @@ dependencies = [
     "pydantic[email]",
     "pydantic-settings",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--capture=no"
+testpaths = ["tests"]
+pythonpath = ["."]
