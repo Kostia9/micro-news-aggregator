@@ -18,7 +18,7 @@
 | `feed-service` | Kafka read model + `GET /feed` | MongoDB `feed` |
 
 ## Інфраструктура
-- Kafka + Zookeeper для асинхронної обробки.
+- Kafka (KRaft mode) для асинхронної обробки.
 - MongoDB replica set (`rs0`, 3 ноди).
 - Postgres для користувачів auth-service.
 - Redis для JWT allowlist між дубльованими auth-service інстансами.
