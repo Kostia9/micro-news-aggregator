@@ -13,13 +13,13 @@
 |---|---|---|
 | `api-gateway` | Єдина REST-точка входу, JWT-перевірка, proxy | Redis allowlist lookup |
 | `auth-service` | Register / login / logout, JWT | Postgres + Redis |
-| `ingestion-service` | RSS polling -> Kafka `articles.raw` | Stateless |
+| `ingestion-service` | RSS polling -> Kafka `articles.raw` | MongoDB `ingestion` |
 | `processing-service` | Dedup, tagging, Mongo write, Kafka `articles.processed` | MongoDB `processing` |
 | `feed-service` | Kafka read model + `GET /feed` | MongoDB `feed` |
 
 ## Інфраструктура
 - Kafka (KRaft mode) для асинхронної обробки.
-- MongoDB replica set (`rs0`, 3 ноди).
+- MongoDB replica set (`rs0`, 3 ноди) з окремими логічними БД `ingestion`, `processing`, `feed`.
 - Postgres для користувачів auth-service.
 - Redis для JWT allowlist між дубльованими auth-service інстансами.
 - `auth-service` дубльований за nginx (`auth-lb`) для HA-сценарію.

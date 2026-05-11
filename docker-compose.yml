@@ -171,9 +171,7 @@ services:
   ingestion-service:
     build: ./services/ingestion-service
     restart: on-failure
-    depends_on:
-      kafka:
-        condition: service_healthy
+    depends_on: *mongo-cluster-deps
     env_file: .env
 
   processing-service:

@@ -18,7 +18,7 @@
 
 ## UC-5: Збір новин (фоновий)
 **Actor:** System
-**Flow:** ingestion-service читає RSS → публікує в Kafka `articles.raw`.
+**Flow:** ingestion-service читає RSS → зберігає seen URLs у Mongo DB `ingestion` → публікує нові статті в Kafka `articles.raw`.
 
 ## UC-6: Обробка статей (фоновий)
 **Actor:** System
@@ -31,7 +31,7 @@
 ## Backlog
 - [x] Auth: register/login/logout + JWT в Redis
 - [x] API Gateway: proxy + JWT/Redis allowlist check
-- [x] Ingestion: RSS fetcher + Kafka producer
+- [x] Ingestion: RSS fetcher + Mongo seen URLs + Kafka producer
 - [x] Processing: Kafka consumer + dedup/tagger + Mongo writer
 - [x] Feed: Kafka read model + REST feed API
 - [x] HA: два інстанси auth-service + nginx + Redis tokens

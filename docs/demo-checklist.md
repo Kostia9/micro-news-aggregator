@@ -16,7 +16,7 @@ docker compose exec kafka bash /scripts/topics.sh
 
 ## Async News Flow
 - Confirm Kafka topics exist: `articles.raw` and `articles.processed`.
-- Confirm `ingestion-service` publishes RSS articles into `articles.raw`.
+- Confirm `ingestion-service` stores seen URLs in Mongo DB `ingestion` and publishes new RSS articles into `articles.raw`.
 - Confirm `processing-service` writes deduplicated articles into Mongo DB `processing`.
 - Confirm `feed-service` consumes `articles.processed` and writes projections into Mongo DB `feed`.
 - Fetch feed through API Gateway: `GET http://localhost:8080/feed?page=1&page_size=20`.

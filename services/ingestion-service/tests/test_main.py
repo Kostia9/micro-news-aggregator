@@ -22,11 +22,14 @@ class FakeFetcher:
 
 
 class FakeProducer:
-    def __init__(self) -> None:
+    def __init__(self, events: list[tuple[str, str]] | None = None) -> None:
         self.sent: list[dict] = []
+        self.events = events
 
     async def send(self, article: dict) -> None:
         self.sent.append(article)
+        if self.events is not None:
+            self.events.append(("send", article["url"]))
 
 
 def test_ingest_sources_adds_topics_and_skips_seen_urls(monkeypatch) -> None:
@@ -41,11 +44,22 @@ def test_ingest_sources_adds_topics_and_skips_seen_urls(monkeypatch) -> None:
         ],
     )
     fetcher = FakeFetcher()
-    producer = FakeProducer()
+    events: list[tuple[str, str]] = []
+    producer = FakeProducer(events)
     seen_urls: set[str] = set()
 
-    first_count = asyncio.run(ingest_sources(fetcher, producer, seen_urls))
-    second_count = asyncio.run(ingest_sources(fetcher, producer, seen_urls))
+    async def fake_is_url_seen(url: str) -> bool:
+        return url in seen_urls
+
+    async def fake_mark_url_seen(url: str, source: str) -> None:
+        seen_urls.add(url)
+        events.append(("mark_seen", url))
+
+    monkeypatch.setattr(main, "is_url_seen", fake_is_url_seen)
+    monkeypatch.setattr(main, "mark_url_seen", fake_mark_url_seen)
+
+    first_count = asyncio.run(ingest_sources(fetcher, producer))
+    second_count = asyncio.run(ingest_sources(fetcher, producer))
 
     assert first_count == 1
     assert second_count == 0
@@ -60,6 +74,10 @@ def test_ingest_sources_adds_topics_and_skips_seen_urls(monkeypatch) -> None:
         }
     ]
     assert seen_urls == {"https://example.com/story"}
+    assert events == [
+        ("send", "https://example.com/story"),
+        ("mark_seen", "https://example.com/story"),
+    ]
 
 
 def test_start_producer_with_retry_retries_until_success(monkeypatch) -> None:

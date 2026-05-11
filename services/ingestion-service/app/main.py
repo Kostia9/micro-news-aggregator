@@ -6,6 +6,13 @@ from dataclasses import asdict
 from fastapi import FastAPI
 
 from app.config import settings
+from app.db.mongo import (
+    ensure_indexes,
+    init_mongo,
+    is_url_seen,
+    mark_url_seen,
+    wait_for_mongo,
+)
 from app.fetcher.rss import RSSFetcher
 from app.parser.feed import parse_feed
 from app.producer.kafka import ArticleProducer
@@ -22,7 +29,6 @@ logger = logging.getLogger(__name__)
 async def ingest_sources(
     fetcher: RSSFetcher,
     producer: ArticleProducer,
-    seen_urls: set[str],
 ) -> int:
     published = 0
 
@@ -35,10 +41,10 @@ async def ingest_sources(
             articles = parse_feed(raw_xml, source_name=name, source_topics=topics)
             source_published = 0
             for article in articles:
-                if article.url in seen_urls:
+                if await is_url_seen(article.url):
                     continue
                 await producer.send(asdict(article))
-                seen_urls.add(article.url)
+                await mark_url_seen(article.url, name)
                 published += 1
                 source_published += 1
             logger.info("Published %s new articles from %s", source_published, name)
@@ -69,11 +75,10 @@ async def start_producer_with_retry(producer: ArticleProducer) -> None:
 async def poll_sources(
     fetcher: RSSFetcher,
     producer: ArticleProducer,
-    seen_urls: set[str],
     stop_event: asyncio.Event,
 ) -> None:
     while not stop_event.is_set():
-        await ingest_sources(fetcher, producer, seen_urls)
+        await ingest_sources(fetcher, producer)
 
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(
@@ -83,16 +88,19 @@ async def poll_sources(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_mongo(settings.mongo_uri, settings.ingestion_mongo_db)
+    await wait_for_mongo()
+    await ensure_indexes()
+
     fetcher = RSSFetcher()
     producer = ArticleProducer()
-    seen_urls: set[str] = set()
     stop_event = asyncio.Event()
     poll_task: asyncio.Task[None] | None = None
 
     try:
         await start_producer_with_retry(producer)
         poll_task = asyncio.create_task(
-            poll_sources(fetcher, producer, seen_urls, stop_event)
+            poll_sources(fetcher, producer, stop_event)
         )
         yield
     finally:
