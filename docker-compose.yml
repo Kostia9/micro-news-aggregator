@@ -16,9 +16,9 @@ x-auth-service: &auth-service
       restart: true
   env_file: .env
 
-x-mongo-cluster-deps: &mongo-cluster-deps
-  kafka:
-    condition: service_healthy
+x-pipeline-service-deps: &pipeline-service-deps
+  kafka-init:
+    condition: service_completed_successfully
   mongo-init:
     condition: service_completed_successfully
   mongo1:
@@ -52,13 +52,22 @@ services:
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qg=="
     volumes:
       - kafka-data:/var/lib/kafka/data
-      - ./infra/kafka/topics.sh:/scripts/topics.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
       interval: 10s
       timeout: 10s
       retries: 10
       start_period: 60s
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - ./infra/kafka/topics.sh:/scripts/topics.sh:ro
+    entrypoint: ["bash", "/scripts/topics.sh"]
 
   postgres:
     image: postgres:16-alpine
@@ -171,19 +180,19 @@ services:
   ingestion-service:
     build: ./services/ingestion-service
     restart: on-failure
-    depends_on: *mongo-cluster-deps
+    depends_on: *pipeline-service-deps
     env_file: .env
 
   processing-service:
     build: ./services/processing-service
     restart: on-failure
-    depends_on: *mongo-cluster-deps
+    depends_on: *pipeline-service-deps
     env_file: .env
 
   feed-service:
     build: ./services/feed-service
     restart: on-failure
-    depends_on: *mongo-cluster-deps
+    depends_on: *pipeline-service-deps
     env_file: .env
 
   llm-service:

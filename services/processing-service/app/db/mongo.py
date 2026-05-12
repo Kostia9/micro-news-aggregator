@@ -16,7 +16,7 @@ def init_mongo(uri: str, db_name: str) -> None:
     db = client[db_name]
 
 
-async def wait_for_mongo(retries: int = 30, delay: float = 1.0) -> None:
+async def wait_for_mongo(retries: int, delay: float) -> None:
     assert client is not None
     for attempt in range(1, retries + 1):
         try:

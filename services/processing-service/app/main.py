@@ -143,7 +143,10 @@ async def start_consumer_with_retry(consumer: ArticleConsumer) -> None:
 
 async def main() -> None:
     init_mongo(settings.mongo_uri, settings.mongo_db)
-    await wait_for_mongo()
+    await wait_for_mongo(
+        settings.mongo_startup_retries,
+        settings.mongo_startup_retry_delay_seconds,
+    )
     await ensure_indexes()
 
     loop = asyncio.get_running_loop()

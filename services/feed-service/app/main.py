@@ -47,7 +47,10 @@ async def start_consumer_with_retry(consumer: ProcessedArticleConsumer) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_mongo(settings.mongo_uri, settings.mongo_db)
-    await wait_for_mongo()
+    await wait_for_mongo(
+        settings.mongo_startup_retries,
+        settings.mongo_startup_retry_delay_seconds,
+    )
     await ensure_indexes()
 
     consumer = ProcessedArticleConsumer()

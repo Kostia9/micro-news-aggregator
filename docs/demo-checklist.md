@@ -4,7 +4,6 @@
 ```bash
 cp .env.example .env
 docker compose up -d
-docker compose exec kafka bash /scripts/topics.sh
 ```
 
 ## HA for auth-service

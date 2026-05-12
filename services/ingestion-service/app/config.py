@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     kafka_startup_retry_delay_seconds: float = 1.0
     mongo_uri: str = "mongodb://mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=rs0"
     ingestion_mongo_db: str = "ingestion"
+    mongo_startup_retries: int = 30
+    mongo_startup_retry_delay_seconds: float = 1.0
 
 
 settings = Settings()

@@ -89,7 +89,10 @@ async def poll_sources(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_mongo(settings.mongo_uri, settings.ingestion_mongo_db)
-    await wait_for_mongo()
+    await wait_for_mongo(
+        settings.mongo_startup_retries,
+        settings.mongo_startup_retry_delay_seconds,
+    )
     await ensure_indexes()
 
     fetcher = RSSFetcher()
