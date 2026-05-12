@@ -1,40 +1,40 @@
 # Use Cases / Product Backlog
 
-## UC-1: Реєстрація користувача
-**Actor:** Читач
-**Flow:** POST `/auth/register` → hash пароля → запис у Postgres → видача JWT.
+## UC-1: User Registration
+**Actor:** Reader
+**Flow:** POST `/auth/register` -> password hashing -> Postgres write -> JWT issuance.
 
-## UC-2: Логін
-**Actor:** Читач
-**Flow:** POST `/auth/login` → перевірка хешу → видача JWT → запис у Redis (allowlist).
+## UC-2: Login
+**Actor:** Reader
+**Flow:** POST `/auth/login` -> hash validation -> JWT issuance -> Redis write (allowlist).
 
-## UC-3: Логаут
-**Actor:** Читач
-**Flow:** POST `/auth/logout` → видалення токена з Redis (blacklist/revoke).
+## UC-3: Logout
+**Actor:** Reader
+**Flow:** POST `/auth/logout` -> token removal from Redis (blacklist/revoke).
 
-## UC-4: Перегляд стрічки
-**Actor:** Читач
-**Flow:** GET `/feed` через API Gateway з JWT → feed-service → Mongo read model.
+## UC-4: Feed Browsing
+**Actor:** Reader
+**Flow:** GET `/feed` through the API Gateway with JWT -> feed-service -> Mongo read model.
 
-## UC-5: Збір новин (фоновий)
+## UC-5: News Ingestion (background)
 **Actor:** System
-**Flow:** ingestion-service читає RSS → зберігає seen URLs у Mongo DB `ingestion` → публікує нові статті в Kafka `articles.raw`.
+**Flow:** ingestion-service reads RSS -> stores seen URLs in MongoDB `ingestion` -> publishes new articles to Kafka `articles.raw`.
 
-## UC-6: Обробка статей (фоновий)
+## UC-6: Article Processing (background)
 **Actor:** System
-**Flow:** processing-service консюмить `articles.raw` → дедуп/теги → Mongo + `articles.processed`.
+**Flow:** processing-service consumes `articles.raw` -> deduplication/tags -> Mongo + `articles.processed`.
 
-## UC-7: Feed read model (фоновий)
+## UC-7: Feed Read Model (background)
 **Actor:** System
-**Flow:** feed-service консюмить `articles.processed` → upsert у Mongo DB `feed`.
+**Flow:** feed-service consumes `articles.processed` -> upsert into MongoDB `feed`.
 
 ## Backlog
-- [x] Auth: register/login/logout + JWT в Redis
-- [x] API Gateway: proxy + JWT/Redis allowlist check
+- [x] Auth: registration/login/logout + JWT in Redis
+- [x] API Gateway: proxying + JWT/Redis allowlist validation
 - [x] Ingestion: RSS fetcher + Mongo seen URLs + Kafka producer
-- [x] Processing: Kafka consumer + dedup/tagger + Mongo writer
+- [x] Processing: Kafka consumer + deduplication/tagger + Mongo write
 - [x] Feed: Kafka read model + REST feed API
-- [x] HA: два інстанси auth-service + nginx + Redis tokens
-- [x] Mongo replica set init
+- [x] HA: two auth-service instances + nginx + Redis tokens
+- [x] Mongo replica set initialization
 - [ ] Future: LLM summarization
 - [ ] Future: Elasticsearch full-text search

@@ -1,27 +1,27 @@
 # Vision
 
-## Призначення
-Micro News Aggregator — мікросервісна платформа для збору, обробки та показу новин з відкритих RSS-джерел.
+## Purpose
+Micro News Aggregator is a microservice platform for collecting, processing, and displaying news from open RSS sources.
 
-## MVP Можливості
-- Реєстрація / автентифікація користувачів через JWT.
-- Logout з відкликанням JWT через Redis allowlist.
-- Автоматичний збір статей з RSS-джерел.
-- Асинхронна обробка через Kafka.
-- Дедуплікація, тегування і read model для стрічки.
-- Доступ до системи через API Gateway.
+## MVP Capabilities
+- User registration / authentication through JWT.
+- Logout with JWT revocation through a Redis allowlist.
+- Automatic article collection from RSS sources.
+- Asynchronous processing through Kafka.
+- Deduplication, tagging, and a read model for the feed.
+- System access through an API Gateway.
 
-## Користувачі
-- **Читач** — реєструється, логіниться та переглядає стрічку новин.
-- **Адміністратор** — переглядає налаштовані RSS-джерела.
+## Users
+- **Reader** - registers, logs in, and browses the news feed.
+- **Administrator** - reviews configured RSS sources.
 
-## Нефункціональні вимоги
-- Відмовостійкість auth-сервісу: два інстанси + nginx + Redis для токенів.
-- Реплікація MongoDB: replica set `rs0` з трьома нодами.
-- Окрема persistence-модель для сервісів: Postgres для auth, Mongo DB `ingestion` для ingestion, Mongo DB `processing` для processing, Mongo DB `feed` для feed.
-- Асинхронна інтеграція між ingestion, processing і feed через Kafka.
+## Non-Functional Requirements
+- Fault tolerance for the auth service: two instances + nginx + Redis for tokens.
+- MongoDB replication: replica set `rs0` with three nodes.
+- Separate persistence model for services: Postgres for auth, Mongo DB `ingestion` for ingestion, Mongo DB `processing` for processing, Mongo DB `feed` for feed.
+- Asynchronous integration between ingestion, processing, and feed through Kafka.
 
-## Future Scope
-- AI-сумаризація через LLM.
+## Future Work
+- AI summarization through an LLM.
 - Elasticsearch full-text search.
-- Окремий frontend.
+- Separate frontend.

@@ -1,32 +1,32 @@
 # Micro News Aggregator
 
-Мікросервісна платформа для збору RSS-новин, асинхронної обробки та показу стрічки через API Gateway.
+Microservice platform for collecting RSS news, processing it asynchronously, and exposing a feed through an API Gateway.
 
-## Документація
+## Documentation
 - [Vision](docs/vision.md)
-- [Use cases / Backlog](docs/use-cases.md)
+- [Use cases / backlog](docs/use-cases.md)
 - [Architecture diagram](docs/architecture.png)
 - [Demo checklist](docs/demo-checklist.md)
 
-## MVP Сервіси
-| Сервіс | Призначення | Persistence |
+## MVP services
+| Service | Purpose | Data storage |
 |---|---|---|
-| `api-gateway` | Єдина REST-точка входу, JWT-перевірка, proxy | Redis allowlist lookup |
-| `auth-service` | Register / login / logout, JWT | Postgres + Redis |
+| `api-gateway` | Single REST entry point, JWT validation, proxying | Redis allowlist validation |
+| `auth-service` | Registration / login / logout, JWT | Postgres + Redis |
 | `ingestion-service` | RSS polling -> Kafka `articles.raw` | MongoDB `ingestion` |
-| `processing-service` | Dedup, tagging, Mongo write, Kafka `articles.processed` | MongoDB `processing` |
-| `feed-service` | Kafka read model + `GET /feed` | MongoDB `feed` |
+| `processing-service` | Deduplication, tagging, Mongo writes, Kafka `articles.processed` | MongoDB `processing` |
+| `feed-service` | Read model from Kafka + `GET /feed` | MongoDB `feed` |
 
-## Інфраструктура
-- Kafka (KRaft mode) для асинхронної обробки.
-- MongoDB replica set (`rs0`, 3 ноди) з окремими логічними БД `ingestion`, `processing`, `feed`.
-- Postgres для користувачів auth-service.
-- Redis для JWT allowlist між дубльованими auth-service інстансами.
-- `auth-service` дубльований за nginx (`auth-lb`) для HA-сценарію.
+## Infrastructure
+- Kafka (KRaft mode) for asynchronous processing.
+- MongoDB replica set (`rs0`, 3 nodes) with separate logical databases: `ingestion`, `processing`, `feed`.
+- Postgres for auth-service users.
+- Redis for the JWT allowlist shared by duplicated auth-service instances.
+- `auth-service` is duplicated behind nginx (`auth-lb`) for the HA scenario.
 
-`llm-service` та Elasticsearch/search залишені як future scope і запускаються через Compose profile `future`.
+`llm-service` and Elasticsearch/search are left as future work and run through the Compose profile `future`.
 
-## Запуск
+## Running
 ```bash
 cp .env.example .env
 docker compose up -d
