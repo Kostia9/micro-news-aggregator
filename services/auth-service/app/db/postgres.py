@@ -22,7 +22,7 @@ def init_db(dsn: str) -> None:
     SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
-async def wait_for_db(retries: int = 30, delay: float = 1.0) -> None:
+async def wait_for_db(retries: int, delay: float) -> None:
     assert engine is not None
     for attempt in range(1, retries + 1):
         try:

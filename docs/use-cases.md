@@ -10,7 +10,7 @@
 
 ## UC-3: Logout
 **Actor:** Reader
-**Flow:** POST `/auth/logout` -> token removal from Redis (blacklist/revoke).
+**Flow:** POST `/auth/logout` -> token removal from Redis allowlist (revoke).
 
 ## UC-4: Feed Browsing
 **Actor:** Reader

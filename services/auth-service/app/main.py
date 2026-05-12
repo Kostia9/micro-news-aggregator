@@ -12,8 +12,14 @@ from app.routes.auth import router as auth_router
 async def lifespan(app: FastAPI):
     init_db(settings.postgres_dsn)
     init_redis(settings.redis_url)
-    await wait_for_db()
-    await wait_for_redis()
+    await wait_for_db(
+        settings.dependency_startup_retries,
+        settings.dependency_startup_retry_delay_seconds,
+    )
+    await wait_for_redis(
+        settings.dependency_startup_retries,
+        settings.dependency_startup_retry_delay_seconds,
+    )
     await create_schema()
     yield
 

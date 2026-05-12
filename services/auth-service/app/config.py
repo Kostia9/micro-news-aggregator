@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
     access_token_ttl_seconds: int = 3600
+    dependency_startup_retries: int = 30
+    dependency_startup_retry_delay_seconds: float = 1.0
 
 
 settings = Settings()

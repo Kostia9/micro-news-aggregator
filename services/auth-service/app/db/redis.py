@@ -14,7 +14,7 @@ def init_redis(url: str) -> None:
     client = aioredis.from_url(url, decode_responses=True)
 
 
-async def wait_for_redis(retries: int = 30, delay: float = 1.0) -> None:
+async def wait_for_redis(retries: int, delay: float) -> None:
     assert client is not None
     for attempt in range(1, retries + 1):
         try:
