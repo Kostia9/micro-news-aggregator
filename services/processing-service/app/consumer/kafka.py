@@ -35,7 +35,12 @@ class ArticleConsumer:
     async def produce(self, article: dict) -> None:
         if self._producer is None:
             raise RuntimeError("Call start() before produce()")
-        await self._producer.send_and_wait(settings.kafka_topic_processed, value=article)
+        key = str(article["article_id"]).encode("utf-8")
+        await self._producer.send_and_wait(
+            settings.kafka_topic_processed,
+            key=key,
+            value=article,
+        )
 
     async def commit(self) -> None:
         if self._consumer is None:

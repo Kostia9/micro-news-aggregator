@@ -23,7 +23,12 @@ class ArticleProducer:
     async def send(self, article: dict) -> None:
         if self._producer is None:
             raise RuntimeError("Call start() before send()")
-        await self._producer.send_and_wait(settings.kafka_topic_raw, value=article)
+        key = str(article["url"]).encode("utf-8")
+        await self._producer.send_and_wait(
+            settings.kafka_topic_raw,
+            key=key,
+            value=article,
+        )
 
     async def stop(self) -> None:
         if self._producer is not None:

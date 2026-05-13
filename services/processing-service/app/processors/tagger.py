@@ -1,7 +1,6 @@
 import re
 from collections import Counter
 
-
 TOPIC_KEYWORDS: dict[str, list[str]] = {
     "technology": [
         "ai",

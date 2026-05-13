@@ -19,8 +19,8 @@ class FakeAIOKafkaProducer:
     async def start(self) -> None:
         self.started = True
 
-    async def send_and_wait(self, topic: str, value: dict) -> None:
-        self.sent.append((topic, value))
+    async def send_and_wait(self, topic: str, key: bytes, value: dict) -> None:
+        self.sent.append((topic, key, value))
 
     async def stop(self) -> None:
         self.stopped = True
@@ -46,7 +46,11 @@ def test_article_producer_serializes_and_sends_to_raw_topic(monkeypatch) -> None
         "title": "Story"
     }
     assert fake.sent == [
-        (settings.kafka_topic_raw, {"title": "Story", "url": "https://example.com/story"})
+        (
+            settings.kafka_topic_raw,
+            b"https://example.com/story",
+            {"title": "Story", "url": "https://example.com/story"},
+        )
     ]
 
 

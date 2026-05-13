@@ -17,7 +17,8 @@ def init_mongo(uri: str, db_name: str) -> None:
 
 
 async def wait_for_mongo(retries: int, delay: float) -> None:
-    assert client is not None
+    if client is None:
+        raise RuntimeError("Call init_mongo() before wait_for_mongo()")
     for attempt in range(1, retries + 1):
         try:
             await client.admin.command("ping")
@@ -30,28 +31,33 @@ async def wait_for_mongo(retries: int, delay: float) -> None:
 
 
 async def ensure_indexes() -> None:
-    assert db is not None
+    if db is None:
+        raise RuntimeError("Call init_mongo() before ensure_indexes()")
     await db.articles.create_index("url", unique=True)
 
 
 async def save_article(article: dict) -> str:
-    assert db is not None
+    if db is None:
+        raise RuntimeError("Call init_mongo() before save_article()")
     result = await db.articles.insert_one(article)
     return str(result.inserted_id)
 
 
 async def is_published(url: str) -> bool:
-    assert db is not None
+    if db is None:
+        raise RuntimeError("Call init_mongo() before is_published()")
     doc = await db.articles.find_one({"url": url, "published": True}, projection={"_id": 1})
     return doc is not None
 
 
 async def get_article_id_by_url(url: str) -> str | None:
-    assert db is not None
+    if db is None:
+        raise RuntimeError("Call init_mongo() before get_article_id_by_url()")
     doc = await db.articles.find_one({"url": url}, projection={"_id": 1})
     return str(doc["_id"]) if doc else None
 
 
 async def mark_published(article_id: str) -> None:
-    assert db is not None
+    if db is None:
+        raise RuntimeError("Call init_mongo() before mark_published()")
     await db.articles.update_one({"_id": ObjectId(article_id)}, {"$set": {"published": True}})
