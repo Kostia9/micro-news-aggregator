@@ -13,7 +13,6 @@ Micro News Aggregator is a microservice platform for collecting, processing, and
 
 ## Users
 - **Reader** - registers, logs in, and browses the news feed.
-- **Administrator** - reviews configured RSS sources.
 
 ## Non-Functional Requirements
 - Fault tolerance for the auth service: two instances + nginx + Redis for tokens.
